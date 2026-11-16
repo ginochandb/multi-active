@@ -2003,7 +2003,10 @@ err:
     if (!error) (void)RUN_HOOK(transaction, after_commit, (thd, all));
     trn_ctx->m_flags.run_hooks = false;
   }
-  if (!error && all) global_config_cache_on_commit(thd);
+
+  const bool is_real_trans =
+    all || !trn_ctx->is_active(Transaction_ctx::SESSION);
+  if (!error && is_real_trans) global_config_cache_on_commit(thd);
   return error;
 }
 
