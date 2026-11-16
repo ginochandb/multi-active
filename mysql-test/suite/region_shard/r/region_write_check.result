@@ -1,0 +1,34 @@
+# Restart with region=1
+# restart:--region=1
+SELECT @@global.region;
+@@global.region
+1
+INSERT INTO mysql.global_config (region, shards) VALUES (1, CAST('[1, 2]' AS JSON));
+INSERT INTO mysql.global_config (region, shards) VALUES (2, CAST('[3]' AS JSON));
+CREATE TABLE t1 (
+  id INT PRIMARY KEY,
+  shard_id BIGINT NOT NULL,
+  val INT
+) ENGINE=InnoDB SHARD KEY(shard_id);
+INSERT INTO t1 (id, shard_id, val) VALUES (1, 1, 10);
+INSERT INTO t1 (id, shard_id, val) VALUES (2, 2, 20);
+INSERT INTO t1 (id, shard_id, val) VALUES (3, 3, 30);
+ERROR HY000: Shard 3 is not writable in region 1 (owned by region 2).
+INSERT INTO t1 (id, val) VALUES (4, 40);
+ERROR HY000: INSERT must explicitly specify the SHARD KEY column 'shard_id'.
+UPDATE t1 SET shard_id = 2 WHERE id = 1;
+ERROR HY000: Cannot update the SHARD KEY column 'shard_id'.
+UPDATE t1 SET val = 11 WHERE val = 10;
+ERROR HY000: UPDATE/DELETE must include an equality condition on the primary key or SHARD KEY column 'shard_id'.
+UPDATE t1 SET val = 11 WHERE id = 1;
+UPDATE t1 SET val = 21 WHERE shard_id = 2;
+DELETE FROM t1 WHERE val = 11;
+ERROR HY000: UPDATE/DELETE must include an equality condition on the primary key or SHARD KEY column 'shard_id'.
+DELETE FROM t1 WHERE id = 1;
+DELETE FROM t1 WHERE shard_id = 2;
+CREATE TABLE t_noshard (id INT PRIMARY KEY) ENGINE=InnoDB;
+ERROR HY000: Table 'test.t_noshard' must specify SHARD KEY when region is enabled.
+DROP TABLE t1;
+DELETE FROM mysql.global_config;
+# Restore region=0
+# restart:--region=0

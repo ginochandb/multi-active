@@ -2152,6 +2152,14 @@ bool PT_create_table_engine_option::do_contextualize(
                         &pc->create_info->db_type);
 }
 
+bool PT_create_table_shard_key_option::do_contextualize(
+    Table_ddl_parse_context *pc) {
+  if (super::do_contextualize(pc)) return true;
+  pc->create_info->used_fields |= HA_CREATE_USED_SHARD_KEY;
+  pc->create_info->shard_key = m_shard_key;
+  return false;
+}
+
 bool PT_create_table_secondary_engine_option::do_contextualize(
     Table_ddl_parse_context *pc) {
   if (super::do_contextualize(pc)) return true;

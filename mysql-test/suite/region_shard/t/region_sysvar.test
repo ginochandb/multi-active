@@ -1,0 +1,9 @@
+# region is persist-as-readonly; visible via SHOW VARIABLES
+--source include/have_innodb.inc
+
+SELECT @@global.region;
+SHOW GLOBAL VARIABLES LIKE 'region';
+
+# Cannot SET GLOBAL online
+--error ER_VARIABLE_IS_READONLY
+SET GLOBAL region = 1;

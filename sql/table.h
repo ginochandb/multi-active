@@ -762,6 +762,11 @@ struct TABLE_SHARE {
   /** Secondary engine load status */
   bool secondary_load{false};
 
+  /** Multi-active SHARD KEY column name; empty if none. */
+  LEX_CSTRING shard_key{nullptr, 0};
+  /** Index of shard key field in Field array; UINT_MAX if none. */
+  uint shard_field_index{UINT_MAX};
+
   const CHARSET_INFO *table_charset{
       nullptr}; /* Default charset of string fields */
 

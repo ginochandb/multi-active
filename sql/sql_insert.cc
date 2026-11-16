@@ -87,6 +87,7 @@
 #include "sql/sql_array.h"
 #include "sql/sql_base.h"  // setup_fields
 #include "sql/sql_class.h"
+#include "sql/sql_region_shard.h"
 #include "sql/sql_const.h"
 #include "sql/sql_error.h"
 #include "sql/sql_gipk.h"
@@ -613,6 +614,10 @@ bool Sql_cmd_insert_values::execute_inner(THD *thd) {
         column list are correct or not.
       */
       if (validate_default_values_of_unset_fields(thd, insert_table)) {
+        has_error = true;
+        break;
+      }
+      if (check_insert_shard(thd, insert_table, &insert_field_list, values)) {
         has_error = true;
         break;
       }
@@ -1151,6 +1156,10 @@ bool Sql_cmd_insert_base::prepare_inner(THD *thd) {
   if (duplicates == DUP_UPDATE) lex->insert_table_leaf->set_updated();
 
   TABLE *const insert_table = lex->insert_table_leaf->table;
+
+  // Multi-active: INSERT must list the SHARD KEY column (or use all-columns).
+  if (check_insert_shard(thd, insert_table, &insert_field_list, nullptr))
+    return true;
 
   uint field_count = insert_field_list.size();
   const table_map map = lex->insert_table_leaf->map();

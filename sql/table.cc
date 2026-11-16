@@ -3307,6 +3307,19 @@ int open_table_from_share(THD *thd, TABLE_SHARE *share, const char *alias,
     global_aggregated_stats.get_shard(thd->thread_id()).opened_tables++;
   }
 
+  // Resolve multi-active SHARD KEY field index on the share.
+  if (share->shard_key.str != nullptr && share->shard_key.length > 0 &&
+      share->shard_field_index == UINT_MAX) {
+    for (uint fi = 0; fi < share->fields; ++fi) {
+      if (share->field[fi] != nullptr &&
+          my_strcasecmp(system_charset_info, share->field[fi]->field_name,
+                        share->shard_key.str) == 0) {
+        share->shard_field_index = fi;
+        break;
+      }
+    }
+  }
+
   return 0;
 
 err:
@@ -3603,6 +3616,7 @@ void update_create_info_from_table(HA_CREATE_INFO *create_info, TABLE *table) {
   create_info->compress = share->compress;
   create_info->encrypt_type = share->encrypt_type;
   create_info->secondary_engine = share->secondary_engine;
+  create_info->shard_key = share->shard_key;
 }
 
 int rename_file_ext(const char *from, const char *to, const char *ext) {

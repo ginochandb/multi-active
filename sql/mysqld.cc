@@ -869,6 +869,7 @@ MySQL clients support the protocol:
 #include "sql/sql_reload.h"          // handle_reload_request
 #include "sql/sql_restart_server.h"  // is_mysqld_managed
 #include "sql/sql_servers.h"
+#include "sql/global_config_cache.h"
 #include "sql/sql_show.h"
 #include "sql/sql_table.h"  // build_table_filename
 #include "sql/sql_udf.h"
@@ -1340,6 +1341,7 @@ uint protocol_version;
 uint lower_case_table_names;
 long tc_heuristic_recover;
 ulong back_log, connect_timeout, server_id;
+ulong opt_region = 0;
 ulong table_cache_size;
 ulong table_cache_instances;
 ulong table_cache_size_per_instance;
@@ -9750,6 +9752,8 @@ int mysqld_main(int argc, char **argv)
   if (!opt_initialize && (dd::upgrade::no_server_upgrade_required() ||
                           opt_upgrade_mode == UPGRADE_MINIMAL))
     servers_init(nullptr);
+
+  if (!opt_initialize) (void)global_config_cache_init(nullptr);
 
   if (!opt_noacl) {
     udf_read_functions_table();

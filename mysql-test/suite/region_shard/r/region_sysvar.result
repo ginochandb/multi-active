@@ -1,0 +1,8 @@
+SELECT @@global.region;
+@@global.region
+0
+SHOW GLOBAL VARIABLES LIKE 'region';
+Variable_name	Value
+region	0
+SET GLOBAL region = 1;
+ERROR HY000: Variable 'region' is a read only variable

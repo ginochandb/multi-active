@@ -348,6 +348,8 @@ extern char *opt_authentication_policy;
 extern ulong stored_program_cache_size;
 extern ulong back_log;
 extern "C" MYSQL_PLUGIN_IMPORT ulong server_id;
+/** Multi-active region id; 0 disables region/shard write checks. */
+extern ulong opt_region;
 extern time_t server_start_time;
 extern char *opt_mysql_tmpdir;
 extern size_t mysql_unpacked_real_data_home_len;

@@ -1632,3 +1632,16 @@ DELETE FROM global_grants WHERE PRIV = 'SET_USER_ID';
 -- from mysql_native_password into caching_sha2_password.
 UPDATE mysql.user SET plugin='caching_sha2_password', authentication_string='$A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED' WHERE user='mysql.sys';
 UPDATE mysql.user SET plugin='caching_sha2_password', authentication_string='$A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED' WHERE user='mysql.session';
+
+-- Multi-active region/shard ownership configuration
+SET @have_global_config = (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='mysql' AND table_name='global_config');
+SET @cmd = IF(@have_global_config = 0,
+  "CREATE TABLE mysql.global_config (
+    region BIGINT NOT NULL COMMENT 'Region identifier that owns the listed shards.',
+    shards JSON NOT NULL COMMENT 'JSON array of shard ids writable in this region, e.g. [1,2,3].',
+    PRIMARY KEY(region)
+  ) ENGINE=InnoDB STATS_PERSISTENT=0 ROW_FORMAT=DYNAMIC TABLESPACE=mysql COMMENT='Multi-active shard ownership map'",
+  "SELECT 'mysql.global_config already exists'");
+PREPARE stmt FROM @cmd;
+EXECUTE stmt;
+DROP PREPARE stmt;

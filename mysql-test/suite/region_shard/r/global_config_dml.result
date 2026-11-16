@@ -1,0 +1,45 @@
+SHOW CREATE TABLE mysql.global_config;
+Table	Create Table
+global_config	CREATE TABLE `global_config` (
+  `region` bigint NOT NULL COMMENT 'Region identifier that owns the listed shards.',
+  `shards` json NOT NULL COMMENT 'JSON array of shard ids writable in this region, e.g. [1,2,3].',
+  PRIMARY KEY (`region`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci STATS_PERSISTENT=0 COMMENT='Multi-active shard ownership map'
+INSERT INTO mysql.global_config (region, shards) VALUES (1, CAST('[1, 2]' AS JSON));
+INSERT INTO mysql.global_config (region, shards) VALUES (2, CAST('[3]' AS JSON));
+SELECT region, shards FROM mysql.global_config ORDER BY region;
+region	shards
+1	[1, 2]
+2	[3]
+INSERT INTO mysql.global_config (region, shards) VALUES (3, CAST('[2]' AS JSON));
+ERROR HY000: Shard 2 is already assigned to region 1 in mysql.global_config.
+INSERT INTO mysql.global_config (region, shards) VALUES (4, CAST('{"a":1}' AS JSON));
+ERROR HY000: Invalid shards JSON in mysql.global_config: must be a JSON array of integers.
+UPDATE mysql.global_config SET shards = CAST('[1, 2, 5]' AS JSON) WHERE region = 1;
+SELECT region, shards FROM mysql.global_config WHERE region = 1;
+region	shards
+1	[1, 2, 5]
+DELETE FROM mysql.global_config WHERE region = 2;
+SELECT COUNT(*) FROM mysql.global_config;
+COUNT(*)
+1
+CREATE TABLE t_shard (
+  id INT PRIMARY KEY,
+  shard_id BIGINT NOT NULL,
+  data VARCHAR(32)
+) ENGINE=InnoDB SHARD KEY(shard_id);
+SHOW CREATE TABLE t_shard;
+Table	Create Table
+t_shard	CREATE TABLE `t_shard` (
+  `id` int NOT NULL,
+  `shard_id` bigint NOT NULL,
+  `data` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci SHARD KEY(`shard_id`)
+CREATE TABLE t_bad (
+  id INT PRIMARY KEY,
+  name VARCHAR(10)
+) ENGINE=InnoDB SHARD KEY(name);
+ERROR HY000: Invalid SHARD KEY: column 'name' must exist and be an integer type.
+DROP TABLE t_shard;
+DELETE FROM mysql.global_config;

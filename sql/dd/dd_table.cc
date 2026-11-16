@@ -2154,6 +2154,11 @@ static bool fill_dd_table_from_create_info(
     table_options->set("secondary_load", create_info->secondary_load);
   }
 
+  // Multi-active SHARD KEY column name.
+  if (create_info->shard_key.str != nullptr) {
+    table_options->set("shard_key", make_string_type(create_info->shard_key));
+  }
+
   tab_obj->set_engine_attribute(create_info->engine_attribute);
   tab_obj->set_secondary_engine_attribute(
       create_info->secondary_engine_attribute);

@@ -810,6 +810,9 @@ constexpr const uint64_t HA_CREATE_USED_READ_ONLY{1ULL << 34};
 */
 constexpr const uint64_t HA_CREATE_USED_AUTOEXTEND_SIZE{1ULL << 35};
 
+/** SHARD KEY used during table create/alter. */
+constexpr const uint64_t HA_CREATE_USED_SHARD_KEY{1ULL << 36};
+
 /*
   End of bits used in used_fields
 */
@@ -3232,6 +3235,9 @@ struct HA_CREATE_INFO {
   LEX_CSTRING secondary_engine{nullptr, 0};
   /** Secondary engine load status */
   bool secondary_load{false};
+
+  /** SHARD KEY column name (multi-active). Empty if unset. */
+  LEX_CSTRING shard_key{nullptr, 0};
 
   const char *data_file_name{nullptr};
   const char *index_file_name{nullptr};

@@ -584,6 +584,8 @@ SET(SQL_SHARED_SOURCES
   sql_rewrite.cc
   sql_select.cc
   sql_servers.cc
+  global_config_cache.cc
+  sql_region_shard.cc
   sql_show.cc
   sql_show_status.cc
   sql_show_processlist.cc

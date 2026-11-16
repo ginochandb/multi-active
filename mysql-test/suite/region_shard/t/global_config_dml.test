@@ -1,0 +1,42 @@
+# Test DML on mysql.global_config and SHARD KEY basic DDL (region=0).
+--source include/have_innodb.inc
+
+--replace_regex /DEFAULT CHARSET=[^ ]+ COLLATE=[^ ]+/DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci/ /TABLESPACE=`?mysql`? ?// / ENCRYPTION='[YN]'//
+SHOW CREATE TABLE mysql.global_config;
+
+INSERT INTO mysql.global_config (region, shards) VALUES (1, CAST('[1, 2]' AS JSON));
+INSERT INTO mysql.global_config (region, shards) VALUES (2, CAST('[3]' AS JSON));
+SELECT region, shards FROM mysql.global_config ORDER BY region;
+
+# Cross-region shard conflict
+--error ER_GLOBAL_CONFIG_SHARD_CONFLICT
+INSERT INTO mysql.global_config (region, shards) VALUES (3, CAST('[2]' AS JSON));
+
+# Invalid shards JSON
+--error ER_GLOBAL_CONFIG_INVALID_SHARDS
+INSERT INTO mysql.global_config (region, shards) VALUES (4, CAST('{"a":1}' AS JSON));
+
+UPDATE mysql.global_config SET shards = CAST('[1, 2, 5]' AS JSON) WHERE region = 1;
+SELECT region, shards FROM mysql.global_config WHERE region = 1;
+
+DELETE FROM mysql.global_config WHERE region = 2;
+SELECT COUNT(*) FROM mysql.global_config;
+
+# SHARD KEY DDL with region=0 (not required, but allowed)
+CREATE TABLE t_shard (
+  id INT PRIMARY KEY,
+  shard_id BIGINT NOT NULL,
+  data VARCHAR(32)
+) ENGINE=InnoDB SHARD KEY(shard_id);
+--replace_regex /DEFAULT CHARSET=[^ ]+ COLLATE=[^ ]+/DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci/
+SHOW CREATE TABLE t_shard;
+
+# Invalid SHARD KEY column type
+--error ER_SHARD_KEY_INVALID
+CREATE TABLE t_bad (
+  id INT PRIMARY KEY,
+  name VARCHAR(10)
+) ENGINE=InnoDB SHARD KEY(name);
+
+DROP TABLE t_shard;
+DELETE FROM mysql.global_config;

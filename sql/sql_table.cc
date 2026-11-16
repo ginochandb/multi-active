@@ -161,6 +161,7 @@
 #include "sql/sql_check_constraint.h"  // Sql_check_constraint_spec*
 #include "sql/sql_class.h"             // THD
 #include "sql/sql_const.h"
+#include "sql/sql_region_shard.h"
 #include "sql/sql_constraint.h"  // Constraint_type_resolver
 #include "sql/sql_db.h"          // get_default_db_collation
 #include "sql/sql_error.h"
@@ -8977,6 +8978,12 @@ static bool create_table_impl(
     my_error(ER_SECONDARY_ENGINE, MYF(0), "Temporary tables not supported");
     return true;
   }
+
+  if (check_shard_key_on_create(thd, db, table_name, create_info,
+                                &alter_info->create_list, internal_tmp_table ||
+                                    (create_info->options &
+                                     HA_LEX_CREATE_TMP_TABLE) != 0))
+    return true;
 
   if (set_table_default_charset(thd, create_info, schema)) return true;
 

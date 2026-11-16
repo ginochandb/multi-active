@@ -1,0 +1,61 @@
+# Test region/shard write checks with --region=1
+--source include/have_innodb.inc
+
+--echo # Restart with region=1
+--let $restart_parameters = restart:--region=1
+--source include/restart_mysqld.inc
+
+SELECT @@global.region;
+
+INSERT INTO mysql.global_config (region, shards) VALUES (1, CAST('[1, 2]' AS JSON));
+INSERT INTO mysql.global_config (region, shards) VALUES (2, CAST('[3]' AS JSON));
+
+CREATE TABLE t1 (
+  id INT PRIMARY KEY,
+  shard_id BIGINT NOT NULL,
+  val INT
+) ENGINE=InnoDB SHARD KEY(shard_id);
+
+# Writable shard for region 1
+INSERT INTO t1 (id, shard_id, val) VALUES (1, 1, 10);
+INSERT INTO t1 (id, shard_id, val) VALUES (2, 2, 20);
+
+# Read-only shard owned by region 2
+--error ER_REGION_SHARD_READ_ONLY
+INSERT INTO t1 (id, shard_id, val) VALUES (3, 3, 30);
+
+# INSERT must specify shard column
+--error ER_INSERT_SHARD_REQUIRED
+INSERT INTO t1 (id, val) VALUES (4, 40);
+
+# UPDATE cannot change shard
+--error ER_CANNOT_UPDATE_SHARD_KEY
+UPDATE t1 SET shard_id = 2 WHERE id = 1;
+
+# UPDATE without PK or shard equality
+--error ER_DML_NEEDS_PK_OR_SHARD
+UPDATE t1 SET val = 11 WHERE val = 10;
+
+# UPDATE with PK OK
+UPDATE t1 SET val = 11 WHERE id = 1;
+
+# UPDATE with shard equality OK
+UPDATE t1 SET val = 21 WHERE shard_id = 2;
+
+# DELETE without PK/shard
+--error ER_DML_NEEDS_PK_OR_SHARD
+DELETE FROM t1 WHERE val = 11;
+
+DELETE FROM t1 WHERE id = 1;
+DELETE FROM t1 WHERE shard_id = 2;
+
+# Table without SHARD KEY rejected when region enabled
+--error ER_SHARD_KEY_REQUIRED
+CREATE TABLE t_noshard (id INT PRIMARY KEY) ENGINE=InnoDB;
+
+DROP TABLE t1;
+DELETE FROM mysql.global_config;
+
+--echo # Restore region=0
+--let $restart_parameters = restart:--region=0
+--source include/restart_mysqld.inc

@@ -465,6 +465,17 @@ PREPARE stmt FROM @str;
 EXECUTE stmt;
 DROP PREPARE stmt;
 
+-- Multi-active region/shard ownership configuration
+SET @cmd= "CREATE TABLE IF NOT EXISTS global_config (
+    region BIGINT NOT NULL COMMENT 'Region identifier that owns the listed shards.',
+    shards JSON NOT NULL COMMENT 'JSON array of shard ids writable in this region, e.g. [1,2,3].',
+    PRIMARY KEY(region)) STATS_PERSISTENT=0 COMMENT='Multi-active shard ownership map'";
+
+SET @str=IF(@have_innodb <> 0, CONCAT(@cmd, ' ENGINE= INNODB ROW_FORMAT=DYNAMIC TABLESPACE=mysql ENCRYPTION=\'', @is_mysql_encrypted,'\''), CONCAT(@cmd, ' ENGINE= MYISAM'));
+PREPARE stmt FROM @str;
+EXECUTE stmt;
+DROP PREPARE stmt;
+
 -- replication_asynchronous_connection_failover table
 SET @cmd= "CREATE TABLE IF NOT EXISTS replication_asynchronous_connection_failover (
     Channel_name CHAR(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT 'The replication channel name that connects source and replica.',

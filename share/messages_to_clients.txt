@@ -10433,6 +10433,30 @@ ER_EXTERNAL_UNSUPPORTED_INDEX_ALGORITHM
 ER_TP_CANNOT_DISABLE_MTL_WITH_DL
   eng "The variable thread_pool_max_transactions_limit cannot be set to 0 when thread_pool_dedicated_listernes is ON."
 
+ER_SHARD_KEY_REQUIRED
+  eng "Table '%.192s.%.192s' must specify SHARD KEY when region is enabled."
+
+ER_SHARD_KEY_INVALID
+  eng "Invalid SHARD KEY: column '%.64s' must exist and be an integer type."
+
+ER_INSERT_SHARD_REQUIRED
+  eng "INSERT must explicitly specify the SHARD KEY column '%.64s'."
+
+ER_CANNOT_UPDATE_SHARD_KEY
+  eng "Cannot update the SHARD KEY column '%.64s'."
+
+ER_DML_NEEDS_PK_OR_SHARD
+  eng "UPDATE/DELETE must include an equality condition on the primary key or SHARD KEY column '%.64s'."
+
+ER_REGION_SHARD_READ_ONLY
+  eng "Shard %lld is not writable in region %llu (owned by region %lld)."
+
+ER_GLOBAL_CONFIG_INVALID_SHARDS
+  eng "Invalid shards JSON in mysql.global_config: must be a JSON array of integers."
+
+ER_GLOBAL_CONFIG_SHARD_CONFLICT
+  eng "Shard %lld is already assigned to region %lld in mysql.global_config."
+
 #
 #  End of 8.1+ error messages (server-to-client).
 #  Do NOT add messages intended for the error log above!

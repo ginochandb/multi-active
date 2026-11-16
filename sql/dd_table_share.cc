@@ -580,6 +580,12 @@ static bool fill_share_from_dd(THD *thd, TABLE_SHARE *share,
     assert(!share->is_secondary_engine());
   }
 
+  // Multi-active SHARD KEY.
+  if (table_options.exists("shard_key")) {
+    table_options.get("shard_key", &share->shard_key, &share->mem_root);
+  }
+  share->shard_field_index = UINT_MAX;
+
   // Read table engine type
   LEX_CSTRING engine_name = lex_cstring_handle(tab_obj->engine());
   if (share->is_secondary_engine())

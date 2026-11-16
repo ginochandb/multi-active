@@ -70,6 +70,7 @@
 #include "sql/sql_base.h"  // update_non_unique_table_error
 #include "sql/sql_bitmap.h"
 #include "sql/sql_class.h"
+#include "sql/sql_region_shard.h"
 #include "sql/sql_const.h"
 #include "sql/sql_error.h"
 #include "sql/sql_executor.h"
@@ -387,6 +388,8 @@ bool Sql_cmd_delete::delete_from_single_table(THD *thd) {
       conds->update_used_tables();
     }
   }
+
+  if (!no_rows && check_delete_shard_prepare(thd, table, conds)) return true;
 
   /* Prune a second time to be able to prune on subqueries in WHERE clause. */
   if (table->part_info && !no_rows) {

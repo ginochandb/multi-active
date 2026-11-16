@@ -112,6 +112,8 @@
 #include "sql/sql_base.h"  // free_io_cache
 #include "sql/sql_bitmap.h"
 #include "sql/sql_class.h"
+#include "sql/global_config_cache.h"
+#include "sql/sql_region_shard.h"
 #include "sql/sql_error.h"
 #include "sql/sql_lex.h"
 #include "sql/sql_parse.h"   // check_stack_overrun
@@ -2001,6 +2003,7 @@ err:
     if (!error) (void)RUN_HOOK(transaction, after_commit, (thd, all));
     trn_ctx->m_flags.run_hooks = false;
   }
+  if (!error && all) global_config_cache_on_commit(thd);
   return error;
 }
 
@@ -8094,6 +8097,14 @@ int handler::ha_write_row(uchar *buf) {
       my_error(HA_ERR_CRASHED, MYF(ME_ERRORLOG), table_share->table_name.str);
       set_my_errno(HA_ERR_CRASHED); return HA_ERR_CRASHED;);
 
+  {
+    THD *thd = table->in_use;
+    if (check_global_config_row_write(thd, table, /*is_update=*/false,
+                                      /*is_delete=*/false))
+      return HA_ERR_GENERIC;
+    if (check_row_shard_writable(thd, table)) return HA_ERR_GENERIC;
+  }
+
   MYSQL_TABLE_IO_WAIT(PSI_TABLE_WRITE_ROW, MAX_KEY, error,
                       { error = write_row(buf); })
 
@@ -8125,6 +8136,14 @@ int handler::ha_update_row(const uchar *old_data, uchar *new_data) {
       my_error(HA_ERR_CRASHED, MYF(ME_ERRORLOG), table_share->table_name.str);
       set_my_errno(HA_ERR_CRASHED); return (HA_ERR_CRASHED););
 
+  {
+    THD *thd = table->in_use;
+    if (check_global_config_row_write(thd, table, /*is_update=*/true,
+                                      /*is_delete=*/false))
+      return HA_ERR_GENERIC;
+    if (check_row_shard_writable(thd, table)) return HA_ERR_GENERIC;
+  }
+
   MYSQL_TABLE_IO_WAIT(PSI_TABLE_UPDATE_ROW, active_index, error,
                       { error = update_row(old_data, new_data); })
 
@@ -8154,6 +8173,24 @@ int handler::ha_delete_row(const uchar *buf) {
       set_my_errno(HA_ERR_CRASHED); return (HA_ERR_CRASHED););
 
   mark_trx_read_write();
+
+  {
+    THD *thd = table->in_use;
+    if (check_global_config_row_write(thd, table, /*is_update=*/false,
+                                      /*is_delete=*/true))
+      return HA_ERR_GENERIC;
+    const ptrdiff_t ptrdiff = buf - table->record[0];
+    if (ptrdiff != 0) {
+      for (Field **fp = table->field; *fp; ++fp)
+        (*fp)->move_field_offset(ptrdiff);
+    }
+    const bool bad = check_row_shard_writable(thd, table);
+    if (ptrdiff != 0) {
+      for (Field **fp = table->field; *fp; ++fp)
+        (*fp)->move_field_offset(-ptrdiff);
+    }
+    if (bad) return HA_ERR_GENERIC;
+  }
 
   MYSQL_TABLE_IO_WAIT(PSI_TABLE_DELETE_ROW, active_index, error,
                       { error = delete_row(buf); })

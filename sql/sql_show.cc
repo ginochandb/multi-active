@@ -2560,6 +2560,12 @@ bool store_create_info(THD *thd, Table_ref *table_list, String *packet,
       packet->append(share->secondary_engine.str,
                      share->secondary_engine.length);
     }
+    if (share->shard_key.str != nullptr && share->shard_key.length > 0) {
+      packet->append(STRING_WITH_LEN(" SHARD KEY("));
+      append_identifier(thd, packet, share->shard_key.str,
+                        share->shard_key.length);
+      packet->append(')');
+    }
 
     if (share->engine_attribute.length) {
       packet->append(STRING_WITH_LEN(" /*!80021 ENGINE_ATTRIBUTE="));

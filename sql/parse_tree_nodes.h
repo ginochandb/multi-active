@@ -2885,6 +2885,23 @@ class PT_create_table_secondary_engine_option : public PT_create_table_option {
 };
 
 /**
+  Node for the @SQL{SHARD KEY (@B{@<identifier@>)}} table option.
+*/
+class PT_create_table_shard_key_option : public PT_create_table_option {
+  using super = PT_create_table_option;
+
+ public:
+  explicit PT_create_table_shard_key_option(const POS &pos,
+                                            const LEX_CSTRING &shard_key)
+      : super(pos), m_shard_key(shard_key) {}
+
+  bool do_contextualize(Table_ddl_parse_context *pc) override;
+
+ private:
+  const LEX_CSTRING m_shard_key{nullptr, 0};
+};
+
+/**
   Node for the @SQL{STATS_AUTO_RECALC [=] @B{@<0|1|DEFAULT@>})} table option
 
   @ingroup ptn_create_or_alter_table_options

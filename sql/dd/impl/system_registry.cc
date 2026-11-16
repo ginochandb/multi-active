@@ -217,6 +217,7 @@ void System_tables::add_remaining_dd_tables() {
   register_table("func", system);
   register_table("global_grants", system);
   register_table("gtid_executed", system);
+  register_table("global_config", system);
   register_table("help_category", system);
   register_table("help_keyword", system);
   register_table("help_relation", system);

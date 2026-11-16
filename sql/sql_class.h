@@ -2777,6 +2777,12 @@ class THD : public MDL_context_owner,
   /// instead /sven
   bool slave_thread;
 
+  /**
+    Set when this transaction modified mysql.global_config so the
+    in-memory shard->region cache can be reloaded after commit.
+  */
+  bool m_global_config_changed{false};
+
   uchar password;
 
  private:

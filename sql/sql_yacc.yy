@@ -1454,6 +1454,7 @@ void warn_on_deprecated_user_defined_collation(
 %token<lexer.keyword> MANUAL_SYM                 1212   /* MYSQL */
 %token<lexer.keyword> BERNOULLI_SYM              1213  /* SQL-2016-N */
 %token<lexer.keyword> TABLESAMPLE_SYM            1214  /* SQL-2016-R */
+%token<lexer.keyword> SHARD_SYM                  1215  /* MYSQL */
 
 /*
   NOTE! When adding new non-standard keywords, make sure they are added to the
@@ -6547,6 +6548,10 @@ create_table_option:
         | SECONDARY_ENGINE_SYM opt_equal ident_or_text
           {
             $$= NEW_PTN PT_create_table_secondary_engine_option(@$, to_lex_cstring($3));
+          }
+        | SHARD_SYM KEY_SYM '(' ident ')'
+          {
+            $$= NEW_PTN PT_create_table_shard_key_option(@$, to_lex_cstring($4));
           }
         | MAX_ROWS opt_equal ulonglong_num
           {
@@ -15613,6 +15618,7 @@ ident_keywords_unambiguous:
         | SERIALIZABLE_SYM
         | SERIAL_SYM
         | SERVER_SYM
+        | SHARD_SYM
         | SHARE_SYM
         | SIMPLE_SYM
         | SKIP_SYM

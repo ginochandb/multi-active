@@ -93,6 +93,7 @@
 #include "sql/sql_base.h"  // check_record, fill_record
 #include "sql/sql_bitmap.h"
 #include "sql/sql_class.h"
+#include "sql/sql_region_shard.h"
 #include "sql/sql_const.h"
 #include "sql/sql_data_change.h"
 #include "sql/sql_delete.h"
@@ -466,6 +467,10 @@ bool Sql_cmd_update::update_single_table(THD *thd) {
       conds->update_used_tables();
     }
   }
+
+  if (!no_rows && check_update_shard_prepare(thd, table, &query_block->fields,
+                                             conds))
+    return true;
 
   /*
     Also try a second time after locking, to prune when subqueries and
