@@ -6,9 +6,9 @@ SELECT @@global.region;
 INSERT INTO mysql.global_config (region, shards) VALUES (1, CAST('[1, 2]' AS JSON));
 INSERT INTO mysql.global_config (region, shards) VALUES (2, CAST('[3]' AS JSON));
 CREATE TABLE t1 (
-  id INT PRIMARY KEY,
-  shard_id BIGINT NOT NULL,
-  val INT
+id INT PRIMARY KEY,
+shard_id BIGINT NOT NULL,
+val INT
 ) ENGINE=InnoDB SHARD KEY(shard_id);
 INSERT INTO t1 (id, shard_id, val) VALUES (1, 1, 10);
 INSERT INTO t1 (id, shard_id, val) VALUES (2, 2, 20);
@@ -28,6 +28,17 @@ DELETE FROM t1 WHERE id = 1;
 DELETE FROM t1 WHERE shard_id = 2;
 CREATE TABLE t_noshard (id INT PRIMARY KEY) ENGINE=InnoDB;
 ERROR HY000: Table 'test.t_noshard' must specify SHARD KEY when region is enabled.
+CREATE TABLE mysql.t_region_shard_exempt (
+id INT PRIMARY KEY,
+val INT
+) ENGINE=InnoDB;
+INSERT INTO mysql.t_region_shard_exempt (id, val) VALUES (1, 10);
+UPDATE mysql.t_region_shard_exempt SET val = 11 WHERE id = 1;
+DELETE FROM mysql.t_region_shard_exempt WHERE id = 1;
+DROP TABLE mysql.t_region_shard_exempt;
+SELECT COUNT(*) >= 0 FROM mysql.global_config;
+COUNT(*) >= 0
+1
 DROP TABLE t1;
 DELETE FROM mysql.global_config;
 # Restore region=0

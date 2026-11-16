@@ -83,6 +83,7 @@ static const std::set<String_type> default_valid_option_keys = {
     "secondary_load",
     "server_i_s_table",
     "server_p_s_table",
+    "shard_key",
     "stats_auto_recalc",
     "stats_persistent",
     "stats_sample_pages",

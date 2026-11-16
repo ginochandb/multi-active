@@ -17,6 +17,7 @@
 
 class THD;
 class Json_wrapper;
+class Field;
 struct TABLE;
 struct TABLE_LIST;
 class Table_ref;

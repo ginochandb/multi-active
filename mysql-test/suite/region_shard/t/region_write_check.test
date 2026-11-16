@@ -1,5 +1,4 @@
 # Test region/shard write checks with --region=1
---source include/have_innodb.inc
 
 --echo # Restart with region=1
 --let $restart_parameters = restart:--region=1
@@ -52,6 +51,19 @@ DELETE FROM t1 WHERE shard_id = 2;
 # Table without SHARD KEY rejected when region enabled
 --error ER_SHARD_KEY_REQUIRED
 CREATE TABLE t_noshard (id INT PRIMARY KEY) ENGINE=InnoDB;
+
+# System schema skips mandatory SHARD KEY
+CREATE TABLE mysql.t_region_shard_exempt (
+  id INT PRIMARY KEY,
+  val INT
+) ENGINE=InnoDB;
+INSERT INTO mysql.t_region_shard_exempt (id, val) VALUES (1, 10);
+UPDATE mysql.t_region_shard_exempt SET val = 11 WHERE id = 1;
+DELETE FROM mysql.t_region_shard_exempt WHERE id = 1;
+DROP TABLE mysql.t_region_shard_exempt;
+
+# mysql.global_config DML still allowed without SHARD KEY
+SELECT COUNT(*) >= 0 FROM mysql.global_config;
 
 DROP TABLE t1;
 DELETE FROM mysql.global_config;

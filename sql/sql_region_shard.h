@@ -23,6 +23,12 @@ class Create_field;
 /** True when region/shard DML checks are active for this thread. */
 bool region_shard_checks_enabled(const THD *thd);
 
+/** True for system schemas that do not require SHARD KEY. */
+bool is_shard_key_exempt_db(const char *db);
+
+/** True for opened tables that skip mandatory SHARD KEY / region checks. */
+bool is_shard_key_exempt_table(const TABLE *table);
+
 /** Resolve SHARD KEY column index on TABLE_SHARE / TABLE. */
 bool resolve_shard_key_field(TABLE *table);
 

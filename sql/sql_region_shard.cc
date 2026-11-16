@@ -62,12 +62,7 @@ bool has_shard_equality(TABLE *table, Item *conds, Item **const_item) {
 
 bool table_needs_shard_key(const THD *thd, const TABLE *table) {
   if (!region_shard_checks_enabled(thd)) return false;
-  if (table == nullptr || table->s == nullptr) return false;
-  if (table->s->tmp_table != NO_TMP_TABLE) return false;
-  if (is_global_config_table(table)) return false;
-  if (table->s->db.str != nullptr &&
-      my_strcasecmp(system_charset_info, table->s->db.str, "mysql") == 0)
-    return false;
+  if (is_shard_key_exempt_table(table)) return false;
   return true;
 }
 
@@ -75,6 +70,26 @@ bool table_needs_shard_key(const THD *thd, const TABLE *table) {
 
 bool region_shard_checks_enabled(const THD *thd) {
   return opt_region != 0 && thd != nullptr && !thd->slave_thread;
+}
+
+bool is_shard_key_exempt_db(const char *db) {
+  if (db == nullptr) return false;
+  if (my_strcasecmp(system_charset_info, db, MYSQL_SCHEMA_NAME.str) == 0)
+    return true;
+  if (my_strcasecmp(system_charset_info, db, "sys") == 0) return true;
+  if (is_perfschema_db(db)) return true;
+  if (is_infoschema_db(db)) return true;
+  return false;
+}
+
+bool is_shard_key_exempt_table(const TABLE *table) {
+  if (table == nullptr || table->s == nullptr) return true;
+  if (table->s->tmp_table != NO_TMP_TABLE) return true;
+  if (table->s->table_category == TABLE_CATEGORY_TEMPORARY) return true;
+  // Non-USER categories: SYSTEM/ACL/LOG/RPL/GTID/DICTIONARY/PERFORMANCE/INFORMATION
+  if (table->s->table_category != TABLE_CATEGORY_USER) return true;
+  if (is_shard_key_exempt_db(table->s->db.str)) return true;
+  return false;
 }
 
 bool resolve_shard_key_field(TABLE *table) {
@@ -97,11 +112,9 @@ bool check_shard_key_on_create(THD *thd [[maybe_unused]], const char *db,
                                HA_CREATE_INFO *create_info,
                                List<Create_field> *fields, bool is_tmp_table) {
   if (is_tmp_table) return false;
-  if (db != nullptr &&
-      my_strcasecmp(system_charset_info, db, "mysql") == 0)
-    return false;
 
-  // Explicit SHARD KEY in this statement: validate column name/type.
+  // Explicit SHARD KEY in this statement: validate column name/type
+  // (including on system schemas).
   if (create_info->used_fields & HA_CREATE_USED_SHARD_KEY) {
     if (create_info->shard_key.str == nullptr) {
       my_error(ER_SHARD_KEY_INVALID, MYF(0), "");
@@ -123,6 +136,9 @@ bool check_shard_key_on_create(THD *thd [[maybe_unused]], const char *db,
     }
     return false;
   }
+
+  // System schemas skip the mandatory SHARD KEY requirement.
+  if (is_shard_key_exempt_db(db)) return false;
 
   // No SHARD KEY on CREATE when region enabled.
   if (opt_region != 0 && create_info->shard_key.str == nullptr) {

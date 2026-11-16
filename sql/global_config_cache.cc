@@ -178,7 +178,6 @@ end:
 }
 
 bool global_config_cache_init(THD *thd) {
-  Global_config_cache::instance().init_lock();
   return Global_config_cache::instance().reload(thd);
 }
 
